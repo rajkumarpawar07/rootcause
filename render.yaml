@@ -1,0 +1,21 @@
+# Render Blueprint — RootCause backend
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: rootcause-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: OPENROUTER_API_KEY
+        sync: false          # set in the Render dashboard; never committed
+      - key: ROOTCAUSE_LLM_MODEL
+        value: stealth/ox-alpha
+      - key: ROOTCAUSE_LLM_TEMPERATURE
+        value: "0.2"
+    # demo_data caches live at repo root and are read via parents[2] of the
+    # pipeline modules — Render clones the full repo, so the committed cache
+    # files are present relative to backend/ exactly as on localhost.

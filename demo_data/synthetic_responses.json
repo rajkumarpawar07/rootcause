@@ -1,0 +1,17 @@
+[
+  {"student_id": "s01", "response": "Ice is heavy, but it's cold so it floats.", "expected_cluster": "mass_not_density"},
+  {"student_id": "s02", "response": "It must be lighter than the water around it because it's frozen.", "expected_cluster": "mass_not_density"},
+  {"student_id": "s03", "response": "It floats because it's solid, and solids are lighter than liquids.", "expected_cluster": "mass_not_density"},
+  {"student_id": "s04", "response": "The ice pushes down but the water pushes back harder since the ice is smaller.", "expected_cluster": "mass_not_density"},
+  {"student_id": "s05", "response": "Cold things float because heat sinks and cold rises.", "expected_cluster": "mass_not_density"},
+  {"student_id": "s06", "response": "Ice weighs less than the same size chunk of water, so it stays up.", "expected_cluster": "mass_not_density"},
+  {"student_id": "s07", "response": "There's air inside the ice, so it floats like a balloon.", "expected_cluster": "trapped_air"},
+  {"student_id": "s08", "response": "When water freezes it traps air bubbles, and that makes it float.", "expected_cluster": "trapped_air"},
+  {"student_id": "s09", "response": "Ice has tiny holes full of air that keep it up, like foam.", "expected_cluster": "trapped_air"},
+  {"student_id": "s10", "response": "Not sure - it just floats, I've always seen it happen.", "expected_cluster": "no_causal_model"},
+  {"student_id": "s11", "response": "I think it's about temperature but I don't know exactly how.", "expected_cluster": "no_causal_model"},
+  {"student_id": "s12", "response": "Because it's ice and ice floats on water, that's just how it works.", "expected_cluster": "no_causal_model"},
+  {"student_id": "s13", "response": "Ice is less dense than liquid water, so it displaces enough water to float.", "expected_cluster": "correct"},
+  {"student_id": "s14", "response": "Water expands when it freezes, so the same mass takes up more space, making ice less dense than liquid water.", "expected_cluster": "correct"},
+  {"student_id": "s15", "response": "Floating depends on density, not weight, and ice is less dense than the water it's floating in.", "expected_cluster": "correct"}
+]

@@ -1,0 +1,56 @@
+{
+  "fe262b06a477640a03e5e5b589c3b912dabc07a1ba614e8927115f3cdf22bbdf": {
+    "label": "Objects float because they contain trapped air",
+    "gap": "This model attributes floating to air physically trapped inside an object, rather than to comparing the object's overall density (mass per volume) with the density of the surrounding water.",
+    "reteach_suggestion": "Have students predict and test identical sealed film canisters in water—some empty, some packed with clay—showing that air-filled ones can sink while air-free solid objects like wood or ice can float. Then guide them to compute mass ÷ volume for ice versus liquid water to see that the density comparison, not trapped air, explains why ice floats.",
+    "category": "misconception",
+    "_solid_positions": [
+      3,
+      4,
+      5
+    ]
+  },
+  "1e2902aace54be521a941486c7664c7fdae8f228ac1f1aa0c2fbd0b4b1302d6c": {
+    "label": "Floating as a memorized fact, no mechanism",
+    "gap": "The students accept ice floating as a self-evident or familiar fact without any causal model, whereas the correct concept explains floating through relative density—ice floats because it is less dense than liquid water.",
+    "reteach_suggestion": "Have students compare equal volumes of ice and liquid water by weighing them (or use a density column demo) to discover ice is less dense, then predict and test which classroom objects float or sink based on their densities.",
+    "category": "misconception",
+    "_solid_positions": []
+  },
+  "6a38068d5291e01dfb08a5fa85ca392737d8bfdd52090beb16225459396d9323": {
+    "label": "Floating depends on weight or size, not density",
+    "gap": "These students decide floating by comparing overall weight, size, coldness, or state of matter, whereas the correct concept is that relative density—how much mass is packed into the same volume—is what determines whether ice floats.",
+    "reteach_suggestion": "Have students weigh an ice cube and an equal-sized container of water on a balance scale, recording that the ice has less mass in the same amount of space, then name that 'less stuff in the same space' as lower density before testing which one floats. Follow up with a same-weight ball of clay that sinks versus the same clay reshaped to float, showing that total weight alone cannot predict floating.",
+    "category": "misconception",
+    "_solid_positions": [
+      3,
+      4,
+      5,
+      7
+    ]
+  },
+  "5db53bfb2b6bd55530a61ca143cdbf7add543d37b66b6c06253d58d1c832a213": {
+    "label": "Ice floats because freezing makes it lighter",
+    "gap": "Students explain floating through a vague sense of 'lightness'—weight loss during freezing, trapped air, or 'cold being light'—rather than comparing densities, missing that ice's mass stays constant while freezing expands its volume, so its density (mass ÷ volume) drops below liquid water's.",
+    "reteach_suggestion": "Have students seal water in a rigid clear container, record its mass and volume, freeze it, and remeasure to discover mass stays the same while volume grows. Then guide them to calculate density = mass ÷ volume for both states and use the density comparison—not 'lightness'—to predict and explain why ice floats.",
+    "category": "misconception",
+    "_solid_positions": [
+      1,
+      5
+    ]
+  },
+  "55e4059adec1a5cba44d97a87416de16d54154e84200b0c8e5695e9e8c1feb68": {
+    "label": "Light or airy objects float on supportive water",
+    "gap": "Students locate the cause of floating in an object's absolute weight, size, or trapped air (or in water's active 'holding' action) rather than comparing the object's overall density—its mass packed into its volume—to the density of water.",
+    "reteach_suggestion": "Have students predict and test identical sealed containers in a tub of water—one containing only air, one packed with clay—then guide them to see that floating depends on total mass per volume compared to water, since the same-sized objects behave differently. Follow up by weighing equal volumes of ice and liquid water to show ice floats because it is less dense than water, even when frozen from boiled (air-free) water.",
+    "category": "misconception",
+    "_solid_positions": []
+  },
+  "e23ff5f33f409e3bc736142a05c5f327765e8c8fac23df2fafa5b39027f545c3": {
+    "label": "Floating as a familiar fact, not explained",
+    "gap": "The students accept ice floating as an unquestioned observation or vague association with cold, while the correct concept requires a causal model—ice floats because it is less dense than liquid water.",
+    "reteach_suggestion": "Run a quick predict-then-test sink-or-float station with several small objects, then place an ice cube and an equal-sized cup of water on a balance scale so students discover for themselves that floating things weigh less for their size (lower density).",
+    "category": "misconception",
+    "_solid_positions": []
+  }
+}
