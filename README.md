@@ -5,7 +5,7 @@ See `rootcause-project-brief.md` for the full spec and `rootcause-design-documen
 
 ## Status
 
-Day 4 complete: dashboard UI built to the design document spec (screens 01–06), talking to the live API. Full dress rehearsal passed on the recording batch (`demo_data/synthetic_responses_30_batchC.json`): six cards, correct-reasoning trio intact in its own Solid-understanding slice.
+Day 4 complete: dashboard UI built to the design document spec (screens 01–06), talking to the live API. Full dress rehearsal passed on the recording batch (`demo_data/synthetic_responses_30_batchC.json`): six cards, and the "Correct reasoning" slice contains exactly the three students who reason correctly (verified by a second-layer LLM check — see below).
 
 **Validation results** (`python -m pipeline.validate`):
 
@@ -13,18 +13,25 @@ Day 4 complete: dashboard UI built to the design document spec (screens 01–06)
 |---|---|---|
 | §9 seed set (15) | **0.53 – 0.80 across summary draws** | stage-1 nondeterminism moves this; see findings |
 | Expanded set (30, generated from seed) | 0.40 – 0.57 | same effect |
+| Recording batch C (30), post-audit | **0.53** | after stage-4 solid-promotion guard; pre-audit 0.47 |
 
 *Findings:*
 - **Stage-1 summaries drift between runs** (mean cosine 0.88 across identical re-extractions). Measured impact: the same fixed config scores 0.53 or 0.80 on the seed set depending only on which draw is cached. Mitigations shipped: sampling temperature defaults to 0.2 (`ROOTCAUSE_LLM_TEMPERATURE`), plus read-through caches (below).
 - HDBSCAN alone never isolates the correct-reasoning trio at n=30 (verified over 5 draws). Stage 4 audits each cluster's members in the same labeling call and consolidates correct reasoners into one "Correct reasoning" card.
+- **The audit's flags alone over-promote**: measured on batch C, 3 of 6 promoted students actually held weight-based models that merely sound correct ("ice weighs less than the same-size chunk of water"). Every individually flagged member therefore faces an isolated majority-of-3 LLM verification against an explicit rubric (weight/size framings are the misconception even when numerically true; displaced-water weight is legitimate Archimedes) before joining the solid card. After the guard, the solid card contains exactly the ground-truth-correct trio and post-audit purity rises to 0.53.
 - Embedding raw response concatenated with its reasoning summary beats summary-only on small batches; current default: concat + PCA(6) + HDBSCAN(cosine, mcs=3). Verbose summaries beat compressed ones (`ROOTCAUSE_SUMMARY_WORD_LIMIT` stays off).
 - Clusters below ~10% of the batch merge into their nearest neighbor pre-labeling.
+- `python -m pipeline.validate` exits non-zero below `--min-purity` (default 0.40) — a regression tripwire under the documented 0.40–0.80 draw range, not an absolute quality bar. With `--with-labels`, the gate uses post-audit purity (what ships).
 
 ## Demo determinism (important)
 
-Stage 1 and stage 4 both use read-through caches (`demo_data/stage1_cache.json`, `demo_data/stage4_cache.json`). The FIRST run of a given batch pays full LLM latency (~18 min at n=30 with feedback on the free tier); every rerun returns identical cards in ~3 seconds because clusters and labels are served frozen. Per-student feedback notes are always drafted live.
+Stage 1 and stage 4 both use read-through caches (`demo_data/stage1_cache.json`, `demo_data/stage4_cache.json`). The FIRST run of a given batch pays full LLM latency (~18 min at n=30 with feedback on the free tier); every rerun returns identical cards in ~3 seconds because clusters, labels, and solid-card verification verdicts are served frozen. Per-student feedback notes are always drafted live.
+
+Verification verdicts are cached under versioned keys (`verify.v4` in `stage4_cache.json`); changing the verify rubric bumps the version so stale verdicts are never served. Existing label-cache entries are never invalidated by this.
 
 Demo-day workflow: run batch C once ahead of time (done — locked), then paste it on camera; the dashboard renders in seconds. Delete a cache file to force fresh LLM draws.
+
+One gotcha: make sure no stale `uvicorn` from a previous session is still bound to port 8000 before rehearsing — a leftover server serves whatever code it imported when it started.
 
 ## Run the app
 
@@ -46,6 +53,7 @@ Set `NEXT_PUBLIC_API_URL` in `frontend/.env.local` to point anywhere other than 
 ## Stage 4 & API behavior
 
 - Each cluster becomes a dashboard card: `{label, gap, reteach_suggestion, category, size, percentage, example_response}`. Categories map to the design doc's badges: `misconception` (gold), `solid_understanding` (moss), `unclear` (muted).
+- The "Correct reasoning" card's example response is the member whose reasoning embeds closest to the correct concept — never just the first member.
 - Noise responses become one fixed **Unclear** card ("No causal model yet") without an LLM call.
 - `POST /api/diagnose` rejects batches under 8 responses with HTTP 422 `{error: "insufficient_responses", received, minimum}` — a distinct signal from a successful all-unclear run (HTTP 200).
 - Add `"include_feedback": true` to also draft a personalized 2–3 sentence note per student in misconception clusters (`feedback_note` on each record).

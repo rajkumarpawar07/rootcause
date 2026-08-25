@@ -52,5 +52,87 @@
     "reteach_suggestion": "Run a quick predict-then-test sink-or-float station with several small objects, then place an ice cube and an equal-sized cup of water on a balance scale so students discover for themselves that floating things weigh less for their size (lower density).",
     "category": "misconception",
     "_solid_positions": []
+  },
+  "71004c9346ce3adec929aefa158393b0bbb3ce46a17c137130d6cd9cbf4ef098": {
+    "supports_correct_concept": false,
+    "votes": [
+      false,
+      false,
+      false
+    ]
+  },
+  "f78845d6ad2f5492e5a67c24ec0a31e0b539dc02a69ded4d82909814de953034": {
+    "supports_correct_concept": true,
+    "votes": [
+      true,
+      true,
+      true
+    ]
+  },
+  "6c2e286b4d5f03b227f89bc6fc963de824ef8e411509cac496bdba813d8353a0": {
+    "supports_correct_concept": true,
+    "votes": [
+      true,
+      true,
+      true
+    ]
+  },
+  "9cc32a6bd4f8328d0ee135e10859d332eb5a5cb35ff5ba7bd8c34b73fbc1d051": {
+    "supports_correct_concept": false,
+    "votes": [
+      false,
+      false,
+      false
+    ]
+  },
+  "e57e9d61fd1ee54b310c4fa867f830de20be1a897040d93c83d4a0d7afad81a2": {
+    "supports_correct_concept": true,
+    "votes": [
+      true,
+      true
+    ]
+  },
+  "4c1b10fdb63cba735fdafe03ba0629bdffc8eb788ee7fc06d099cc5254b1b0cb": {
+    "supports_correct_concept": false,
+    "votes": [
+      false,
+      false,
+      false
+    ]
+  },
+  "9e796aaabad3dad60624160d49f264e63d523243f0b6e33e681dd76fd82acb62": {
+    "label": "Lightness, not density, makes things float",
+    "gap": "Students explain floating through an object's overall weight or 'lightness' (sometimes from trapped air), rather than understanding that floating depends on comparing the densities of the object and the liquid.",
+    "reteach_suggestion": "Have students weigh a large wooden block and a small metal washer, predict which will float, then test both in water—the heavy block floats while the light washer sinks, breaking the 'light = floats' rule. Then compare equal-sized cubes of wood and metal on a balance to introduce density as 'how much stuff is packed into the same space.'",
+    "category": "misconception",
+    "_solid_positions": []
+  },
+  "f1b3b67337b49a3e657f76b191aab38fe09ac9ee2a21384971c75192871c25b5": {
+    "label": "A single property decides what floats",
+    "gap": "Students point to one absolute, noticeable trait of the object—being cold or being small—as the cause of floating, rather than comparing how much two equal-sized amounts of different materials weigh (i.e., their densities).",
+    "reteach_suggestion": "Give students equal-sized cubes of several materials (ice, wood, clay, metal), have them predict which will float, then weigh each cube on a balance and drop them into water. Guide them to discover that the deciding factor is which cube weighs less for the same size—not its temperature or overall dimensions.",
+    "category": "misconception",
+    "_solid_positions": [
+      2
+    ]
+  },
+  "e03ff658c5a02b49e07eafb1d92dfe5749ecd24709752a14f71d3847274db921": {
+    "label": "Action-reaction pairs recalled as a verbal rule",
+    "gap": "Students can recite or partially reconstruct the law's wording, but they miss that the two forces are equal in magnitude, act at the same instant, and arise together from a single mutual interaction between two objects—rather than forming a memorized slogan or a cause-then-effect chain.",
+    "reteach_suggestion": "Have two students hook two spring scales together and pull while the class reads both displays aloud at the same moment: both scales show identical numbers simultaneously, making visible that the 'pair' is one simultaneous mutual interaction, not a sequence where one force triggers the other.",
+    "category": "misconception",
+    "_solid_positions": [
+      2
+    ]
+  },
+  "db48f2648e85e34ae65afd29a3ddb3e2c960235d58861a5c6c3c3c20779df70a": {
+    "label": "Forces come in pairs from interactions",
+    "gap": "While recognizing that forces arise as reciprocal pairs between interacting objects is correct, student 3 wrongly extends this to mean the paired forces cancel each other on a single object, missing that action-reaction forces act on two different bodies and therefore can never balance each other.",
+    "reteach_suggestion": "Have two students on rolling carts push off each other and record which body each force acts on, making visible that the paired forces act on different objects and thus cannot cancel; contrast this with a book at rest on a table, where two truly balanced forces act on the same object.",
+    "category": "solid_understanding",
+    "_solid_positions": [
+      0,
+      1
+    ]
   }
 }

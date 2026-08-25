@@ -4,15 +4,16 @@ import { useMemo, useState } from "react";
 
 export default function Screen01Form({
   onSubmit,
+  error,
 }: {
   onSubmit: (question: string, correctConcept: string, responses: string[]) => void;
+  error?: string;
 }) {
   const [question, setQuestion] = useState("Why does ice float on water?");
   const [correctConcept, setCorrectConcept] = useState(
     "Density determines whether an object floats"
   );
   const [raw, setRaw] = useState("");
-  const [localError, setLocalError] = useState("");
 
   const responses = useMemo(
     () =>
@@ -41,10 +42,6 @@ export default function Screen01Form({
           onSubmit={(e) => {
             e.preventDefault();
             if (!canSubmit) return;
-            if (responses.length < 8) {
-              // Server enforces the real minimum; let it answer with screen 06.
-              setLocalError("");
-            }
             onSubmit(question.trim(), correctConcept.trim(), responses);
           }}
         >
@@ -84,7 +81,7 @@ export default function Screen01Form({
           <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
             Find the patterns
           </button>
-          {localError && <div className="error-note">{localError}</div>}
+          {error && <div className="error-note">{error}</div>}
         </form>
       </div>
     </div>

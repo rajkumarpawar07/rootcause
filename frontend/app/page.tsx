@@ -100,7 +100,7 @@ export default function Home() {
       );
       break;
     case "form":
-      screen = <Screen01Form onSubmit={runDiagnostic} />;
+      screen = <Screen01Form onSubmit={runDiagnostic} error={view.error} />;
       break;
     case "processing":
       screen = <Screen02Processing total={view.total} currentStage={stage} />;

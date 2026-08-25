@@ -6,6 +6,16 @@ render the correct badge (Misconception / Solid understanding / Unclear)
 per the design document's accessibility rules. Noise clusters skip the LLM
 entirely — there is no coherent reasoning to name — and render as a fixed
 "unclear" card.
+
+Solid-promotion guard: the in-band `solid_member_positions` audit runs
+inside group context and over-flags students who merely borrow correct
+vocabulary (measured on batch C: 3 of 6 promoted members held flawed
+models). Every individually flagged member therefore faces a second,
+isolated yes/no verification against the correct concept before joining
+the "Correct reasoning" card. Verified verdicts are cached alongside the
+cluster labels (distinct keys), so existing label caches stay valid.
+Requires a non-empty correct_concept; without one, audit flags are
+trusted as-is (nothing to verify against).
 """
 
 import hashlib
@@ -15,13 +25,17 @@ import re
 from pathlib import Path
 
 import httpx
+import numpy as np
 from dotenv import load_dotenv
 
+from .embed import embed_texts
 from .extract import chat_completion, parse_json_response
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 STAGE4_CACHE = Path(__file__).resolve().parents[2] / "demo_data" / "stage4_cache.json"
+
+DEFAULT_LLM_MODEL = "stealth/ox-alpha"
 
 
 def _stage4_cache_key(
@@ -54,6 +68,87 @@ def _save_stage4_cache(cache: dict) -> None:
     STAGE4_CACHE.write_text(
         json.dumps(cache, indent=2, ensure_ascii=False), encoding="utf-8"
     )
+
+
+def _verify_cache_key(
+    question_text: str,
+    correct_concept: str,
+    student_id: str,
+    response_text: str,
+    reasoning_summary: str,
+) -> str:
+    payload = json.dumps(
+        {
+            # Version bump whenever VERIFY_USER_TEMPLATE's semantics change
+            # or the verdict rule changes (v4: rubric judges the student's
+            # own theory; displaced-water weight explicitly blessed), so
+            # stale verdicts from an older rubric are never served.
+            "kind": "verify.v4",
+            "q": question_text,
+            "c": correct_concept,
+            "sid": student_id,
+            "r": response_text,
+            "s": reasoning_summary,
+        },
+        ensure_ascii=False,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def verify_supports_concept(
+    client: httpx.Client,
+    api_key: str,
+    cache: dict,
+    question_text: str,
+    correct_concept: str,
+    member: dict,
+) -> bool:
+    """Second-layer check: does this student's causal model actually match
+    the correct concept?
+
+    Single draws proved unstable under rate-limit retries (one redrawing
+    judged the batch's most textbook-correct answer as unsupported), so
+    the rubric is applied VERIFY_VOTES times and a strict majority of
+    valid votes decides; the winning verdict plus the individual votes
+    are cached. With zero valid votes the audit flag is trusted (old
+    behavior) rather than blocking the pipeline."""
+    key = _verify_cache_key(
+        question_text,
+        correct_concept,
+        member["student_id"],
+        member["response_text"],
+        member["reasoning_summary"],
+    )
+    if key in cache:
+        return bool(cache[key].get("supports_correct_concept"))
+    prompt = VERIFY_USER_TEMPLATE.format(
+        question_text=question_text,
+        correct_concept=correct_concept or "(not provided)",
+        student_answer=member["response_text"],
+        reasoning_summary=member["reasoning_summary"],
+    )
+    votes: list[bool] = []
+    last_error: Exception | None = None
+    for _ in range(VERIFY_VOTES):
+        try:
+            text = chat_completion(
+                client,
+                api_key,
+                os.environ.get("ROOTCAUSE_LLM_MODEL", DEFAULT_LLM_MODEL),
+                prompt,
+                max_tokens=4000,
+            )
+            votes.append(
+                bool(parse_json_response(text).get("supports_correct_concept"))
+            )
+        except Exception as exc:
+            last_error = exc
+    if not votes:
+        print(f"  verify failed for {member['student_id']}, trusting audit flag: {last_error}")
+        return True
+    verdict = sum(votes) * 2 > len(votes)
+    cache[key] = {"supports_correct_concept": verdict, "votes": votes}
+    return verdict
 
 STAGE4_SYSTEM_PROMPT = (
     "You are an experienced teacher analyzing a group of students "
@@ -98,6 +193,47 @@ SOLID_CARD_RETEACH = (
     "classmate language."
 )
 
+VERIFY_SYSTEM_PROMPT = (
+    "You are fact-checking whether one student's reasoning truly matches "
+    "the correct concept, or merely sounds scientific."
+)
+
+# Encodes the project's ground-truth policy (brief section 9): weight /
+# lightness / size framings ARE the target misconception even when the
+# statement is numerically true ("ice weighs less than the same-size
+# chunk of water"), and trapped-air mechanisms are a separate
+# misconception, not the correct concept. Without this rubric the judge
+# model passes informal-weight answers as "implicitly density". The
+# student's OWN theory of why ice floats is what's judged — Archimedes'
+# displaced-water weight is part of the correct density story and must
+# not trip the weight clause (measured: it did, unanimously, until the
+# clause targeted the student's theory rather than any mention of
+# weight).
+VERIFY_USER_TEMPLATE = """Question: {question_text}
+Correct concept: {correct_concept}
+
+Student answer: {student_answer}
+Extracted reasoning: {reasoning_summary}
+
+Does this student's causal explanation align with the correct concept?
+Judge the student's OWN theory of WHY ice floats, applying this rubric:
+
+- SUPPORTS the concept if their theory hinges on density — how much mass
+  is packed into a given volume, ice being less dense than liquid water,
+  or freezing spreading the molecules apart so the same mass occupies
+  more space. Mentioning the weight of DISPLACED WATER is part of this
+  density story and still supports the concept.
+- Does NOT support it if their theory is that ice itself is lighter or
+  less heavy than water (rather than less dense per unit volume), or
+  that being small / pulled down gently keeps it up — even when
+  comparing equal sizes and even if the claim is numerically true.
+- Does NOT support it if floating is attributed to incidental features
+  (trapped air pockets, gas bubbles, hollow spots) instead of how the
+  substance's own molecules are arranged.
+
+Respond as JSON: {{\"supports_correct_concept\": true}}
+or {{\"supports_correct_concept\": false}}"""
+
 FEEDBACK_SYSTEM_PROMPT = (
     "You write short, encouraging feedback for students. You never shame "
     "a student for their reasoning."
@@ -124,6 +260,8 @@ UNCLEAR_CARD = {
     ),
     "category": "unclear",
 }
+
+VERIFY_VOTES = 3  # self-consistency votes per verified member (majority wins)
 
 MAX_REPRESENTATIVE_SUMMARIES = 12
 
@@ -184,7 +322,7 @@ def label_cluster(
             text = chat_completion(
                 client,
                 api_key,
-                os.environ.get("ROOTCAUSE_LLM_MODEL", "stealth/ox-alpha"),
+                os.environ.get("ROOTCAUSE_LLM_MODEL", DEFAULT_LLM_MODEL),
                 prompt,
                 max_tokens=6000,
             )
@@ -216,7 +354,7 @@ def draft_feedback(
     text = chat_completion(
         client,
         api_key,
-        os.environ.get("ROOTCAUSE_LLM_MODEL", "stealth/ox-alpha"),
+        os.environ.get("ROOTCAUSE_LLM_MODEL", DEFAULT_LLM_MODEL),
         prompt,
         max_tokens=6000,  # reasoning model: leave room for hidden reasoning
     )
@@ -224,6 +362,25 @@ def draft_feedback(
     if note.startswith('"') and note.endswith('"'):
         note = note[1:-1]
     return re.sub(r"^Feedback:\s*", "", note, flags=re.IGNORECASE)
+
+
+def _pick_solid_example(members: list[dict], correct_concept: str | None) -> str:
+    """Deterministic on-camera exemplar for the "Correct reasoning" card:
+    the member whose reasoning summary sits closest to the correct concept.
+    (members[0] can be a borderline answer that clustered alongside solid
+    reasoners — measured on batch C, where it surfaced a weight-based
+    response under a Solid-understanding badge.) Falls back to the first
+    member when no concept was provided.
+    """
+    if not members:
+        return ""
+    if len(members) == 1 or not (correct_concept or "").strip():
+        return members[0]["response_text"]
+    vecs = embed_texts([correct_concept] + [m["reasoning_summary"] for m in members])
+    normed = vecs / (np.linalg.norm(vecs, axis=1, keepdims=True) + 1e-9)
+    sims = normed[1:] @ normed[0]
+    best = max(range(len(members)), key=lambda i: (float(sims[i]), -i))
+    return members[best]["response_text"]
 
 
 def run_stage4(
@@ -286,6 +443,24 @@ def run_stage4(
 
             flagged_ids = {members[i]["student_id"] for i in solid_positions if i < len(members)}
 
+            # Solid-promotion guard: audit flags from misconception groups
+            # face an isolated verification before joining the solid card.
+            if flagged_ids and (correct_concept or "").strip():
+                verified: set[str] = set()
+                for m in members:
+                    if m["student_id"] not in flagged_ids:
+                        continue
+                    before = len(cache)
+                    ok = verify_supports_concept(
+                        client, api_key, cache, question_text,
+                        correct_concept or "", m,
+                    )
+                    if len(cache) != before:
+                        cache_dirty = True
+                    if ok:
+                        verified.add(m["student_id"])
+                flagged_ids = verified
+
             if flagged_ids:
                 remaining = [m for m in members if m["student_id"] not in flagged_ids]
                 solid_members.extend(m for m in members if m["student_id"] in flagged_ids)
@@ -318,6 +493,7 @@ def run_stage4(
                 "category": "solid_understanding",
                 "student_ids": [m["student_id"] for m in solid_members],
                 "_members": solid_members,
+                "_example": _pick_solid_example(solid_members, correct_concept),
             }
         )
 
@@ -334,7 +510,7 @@ def run_stage4(
                 "category": c["category"],
                 "size": len(members),
                 "percentage": round(len(members) / total * 100),
-                "example_response": members[0]["response_text"] if members else "",
+                "example_response": c.get("_example") or (members[0]["response_text"] if members else ""),
                 "student_ids": [m["student_id"] for m in members],
             }
         )

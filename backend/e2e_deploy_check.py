@@ -34,12 +34,25 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 def request(url: str, method: str = "GET", body: dict | None = None, headers: dict | None = None):
     data = json.dumps(body).encode() if body is not None else None
-    req = urllib.request.Request(url, data=data, method=method, headers=headers or {})
+    all_headers = dict(headers or {})
+    if data is not None:
+        # urllib defaults to form encoding, which FastAPI rejects with a
+        # pydantic list-detail 422 before the handler ever runs.
+        all_headers.setdefault("Content-Type", "application/json")
+    req = urllib.request.Request(url, data=data, method=method, headers=all_headers)
     try:
         with urllib.request.urlopen(req, timeout=1800) as resp:
             return resp.status, dict(resp.headers), resp.read()
     except urllib.error.HTTPError as e:
         return e.code, dict(e.headers), e.read()
+
+
+def header(headers: dict, name: str) -> str:
+    """Case-insensitive lookup — ASGI servers send lowercase header names."""
+    for key, value in headers.items():
+        if key.lower() == name.lower():
+            return value
+    return ""
 
 
 # 1. health
@@ -52,7 +65,7 @@ status, headers, _ = request(
     method="OPTIONS",
     headers={"Origin": WEB, "Access-Control-Request-Method": "POST"},
 )
-allow = headers.get("Access-Control-Allow-Origin", "")
+allow = header(headers, "Access-Control-Allow-Origin")
 check("CORS preflight", status == 200 and (allow == "*" or allow == WEB), f"allow-origin={allow!r}")
 
 # 3. insufficient-responses split
@@ -62,6 +75,8 @@ status, _, body = request(
     body={"question": "q", "responses": [{"response": "a"}, {"response": "b"}]},
 )
 detail = json.loads(body).get("detail", {}) if body else {}
+if not isinstance(detail, dict):  # pydantic validation errors use a list
+    detail = {}
 check(
     "422 split",
     status == 422 and detail.get("error") == "insufficient_responses",
