@@ -5,9 +5,9 @@ export default function Badge({
   kind,
 }: {
   text: string;
-  kind: "gold" | "moss" | "muted";
+  kind: "ember" | "mint" | "slate";
 }) {
   // Every badge carries a text label so meaning survives without color
-  // (design doc: responsive & accessibility).
+  // (accessibility floor).
   return <span className={`badge badge-${kind}`}>{text}</span>;
 }

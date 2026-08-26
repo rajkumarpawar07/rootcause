@@ -12,7 +12,7 @@ import { DiagnoseResult, diagnose } from "@/lib/api";
 type View =
   | { kind: "empty" }
   | { kind: "form"; error?: string }
-  | { kind: "processing"; total: number }
+  | { kind: "processing"; total: number; withNotes: boolean }
   | { kind: "dashboard" }
   | { kind: "detail"; clusterId: number }
   | { kind: "toofew"; received: number };
@@ -39,21 +39,22 @@ export default function Home() {
   const runDiagnostic = async (
     question: string,
     correctConcept: string,
-    responses: string[]
+    responses: string[],
+    includeFeedback: boolean
   ) => {
     setResult(null);
     setStage(0);
-    setView({ kind: "processing", total: responses.length });
+    setView({ kind: "processing", total: responses.length, withNotes: includeFeedback });
     clearStageTimer();
     stageTimer.current = setInterval(() => {
-      setStage((s) => Math.min(s + 1, 3));
+      setStage((s) => Math.min(s + 1, includeFeedback ? 4 : 3));
     }, STAGE_ADVANCE_MS);
 
     try {
       const res = await diagnose({
         question,
         correct_concept: correctConcept || undefined,
-        include_feedback: true,
+        include_feedback: includeFeedback,
         responses: responses.map((response) => ({ response })),
       });
       setResult(res);
@@ -81,21 +82,14 @@ export default function Home() {
   switch (view.kind) {
     case "empty":
       screen = (
-        <div className="screen-frame">
-          <div className="frame-chrome" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <div className="frame-body">
-            <CenterState
-              icon={<SeedlingIcon />}
-              title="Nothing diagnosed yet"
-              body="Add responses to one question and RootCause will show you what your class actually thinks."
-              actionLabel="Start a diagnostic"
-              onAction={() => setView({ kind: "form" })}
-            />
-          </div>
+        <div className="panel">
+          <CenterState
+            icon={<SeedlingIcon />}
+            title="Nothing diagnosed yet"
+            body="Add responses to one question and RootCause will show you what your class actually thinks."
+            actionLabel="Start a diagnostic"
+            onAction={() => setView({ kind: "form" })}
+          />
         </div>
       );
       break;
@@ -103,7 +97,13 @@ export default function Home() {
       screen = <Screen01Form onSubmit={runDiagnostic} error={view.error} />;
       break;
     case "processing":
-      screen = <Screen02Processing total={view.total} currentStage={stage} />;
+      screen = (
+        <Screen02Processing
+          total={view.total}
+          currentStage={stage}
+          withNotes={view.withNotes}
+        />
+      );
       break;
     case "dashboard":
       screen = result ? (
@@ -133,20 +133,13 @@ export default function Home() {
       break;
     case "toofew":
       screen = (
-        <div className="screen-frame">
-          <div className="frame-chrome" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <div className="frame-body">
-            <CenterState
-              title="Add a few more responses"
-              body={`Diagnostics need at least 8 responses to find a reliable pattern. This one has ${view.received}.`}
-              actionLabel="Add more responses"
-              onAction={() => setView({ kind: "form" })}
-            />
-          </div>
+        <div className="panel">
+          <CenterState
+            title="Add a few more responses"
+            body={`Diagnostics need at least 8 responses to find a reliable pattern. This one has ${view.received}.`}
+            actionLabel="Add more responses"
+            onAction={() => setView({ kind: "form" })}
+          />
         </div>
       );
       break;

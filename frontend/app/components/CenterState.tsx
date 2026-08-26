@@ -26,18 +26,18 @@ export default function CenterState({
 }
 
 export function SeedlingIcon() {
-  // From the design doc's screen 05.
+  // Chalk-stroke seedling — drawn, consistent 2px stroke, mint on slate.
   return (
     <svg
-      width="40"
-      height="40"
+      width="44"
+      height="44"
       viewBox="0 0 40 40"
       fill="none"
       aria-hidden="true"
     >
       <path
         d="M20 8v18M20 26c-5 0-8-4-8-8M20 26c5 0 8-4 8-8M20 14c-3-3-7-3-9 0M20 14c3-3 7-3 9 0"
-        stroke="var(--moss)"
+        stroke="var(--mint)"
         strokeWidth="2"
         strokeLinecap="round"
       />

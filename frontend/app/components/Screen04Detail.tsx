@@ -6,11 +6,11 @@ import { ClusterCard, DiagnoseResult } from "@/lib/api";
 
 const BADGE_BY_CATEGORY: Record<
   string,
-  { text: string; kind: "gold" | "moss" | "muted" }
+  { text: string; kind: "ember" | "mint" | "slate" }
 > = {
-  misconception: { text: "Misconception", kind: "gold" },
-  solid_understanding: { text: "Solid understanding", kind: "moss" },
-  unclear: { text: "Unclear", kind: "muted" },
+  misconception: { text: "Misconception", kind: "ember" },
+  solid_understanding: { text: "Solid understanding", kind: "mint" },
+  unclear: { text: "Unclear", kind: "slate" },
 };
 
 export default function Screen04Detail({
@@ -44,15 +44,10 @@ export default function Screen04Detail({
   };
 
   return (
-    <div className="screen-frame">
-      <div className="frame-chrome" aria-hidden="true">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-      <div className="frame-body">
+    <div className="panel">
+      <div style={{ padding: "26px 32px 30px" }}>
         <button className="back-link" onClick={onBack}>
-          &larr; Back to dashboard
+          <span aria-hidden="true">&larr;</span> Back to dashboard
         </button>
         <div className="detail-head">
           <Badge text={badge.text} kind={badge.kind} />
@@ -61,19 +56,21 @@ export default function Screen04Detail({
             {cluster.size} of {result.responses_analyzed} students
           </span>
         </div>
-        {members.map((m) => (
-          <div key={m.student_id} className="student-row">
-            <p className="resp">&ldquo;{m.response_text}&rdquo;</p>
-            {m.feedback_note && (
-              <div className="note">
-                <span className="note-label">Suggested note</span>
-                {m.feedback_note}
-              </div>
-            )}
-          </div>
-        ))}
+        <div>
+          {members.map((m) => (
+            <div key={m.student_id} className="student-row">
+              <p className="resp">&ldquo;{m.response_text}&rdquo;</p>
+              {m.feedback_note && (
+                <div className="note">
+                  <span className="note-label">Suggested note</span>
+                  {m.feedback_note}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
         {notesCount > 0 && (
-          <div style={{ marginTop: 18 }}>
+          <div className="copy-btn">
             <button className="btn btn-secondary" onClick={copyAll}>
               {copied ? "Copied" : "Copy all feedback for this group"}
             </button>
