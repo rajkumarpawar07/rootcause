@@ -82,9 +82,9 @@ export default function Home() {
   switch (view.kind) {
     case "empty":
       screen = (
-        <div className="panel">
+        <div className="panel empty-panel">
           <CenterState
-            icon={<SeedlingIcon />}
+            icon={<SeedlingIcon animated size={72} />}
             title="Nothing diagnosed yet"
             body="Add responses to one question and RootCause will show you what your class actually thinks."
             actionLabel="Start a diagnostic"

@@ -4,6 +4,12 @@ import { useState } from "react";
 import Badge from "./Badge";
 import { ClusterCard, DiagnoseResult } from "@/lib/api";
 
+const CATEGORY_COLOR: Record<string, string> = {
+  misconception: "var(--ember)",
+  solid_understanding: "var(--mint)",
+  unclear: "var(--drift)",
+};
+
 const BADGE_BY_CATEGORY: Record<
   string,
   { text: string; kind: "ember" | "mint" | "slate" }
@@ -49,7 +55,7 @@ export default function Screen04Detail({
         <button className="back-link" onClick={onBack}>
           <span aria-hidden="true">&larr;</span> Back to dashboard
         </button>
-        <div className="detail-head">
+        <div className="detail-head" style={{ borderLeft: `4px solid ${CATEGORY_COLOR[cluster.category] ?? "var(--drift)"}` }}>
           <Badge text={badge.text} kind={badge.kind} />
           <h3>{cluster.label}</h3>
           <span className="count">

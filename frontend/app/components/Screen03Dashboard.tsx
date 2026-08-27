@@ -2,6 +2,7 @@
 
 import Badge from "./Badge";
 import BranchChart, { BranchRankedList } from "./BranchChart";
+import CountUp from "./CountUp";
 import { ClusterCard, DiagnoseResult } from "@/lib/api";
 
 const BADGE_BY_CATEGORY: Record<
@@ -49,15 +50,15 @@ export default function Screen03Dashboard({
       <div className="stat-band">
         <div className="stat-cell">
           <div className="label">Responses analyzed</div>
-          <div className="num">{result.responses_analyzed}</div>
+          <div className="num"><CountUp end={result.responses_analyzed} duration={1000} delay={200} /></div>
         </div>
         <div className="stat-cell">
           <div className="label">Misconceptions found</div>
-          <div className="num">{misconceptionCount}</div>
+          <div className="num"><CountUp end={misconceptionCount} duration={900} delay={350} /></div>
         </div>
         <div className="stat-cell">
           <div className="label">Solid understanding</div>
-          <div className="num">{solidPct}%</div>
+          <div className="num"><CountUp end={solidPct} duration={1100} delay={500} suffix="%" /></div>
         </div>
       </div>
 
@@ -67,8 +68,12 @@ export default function Screen03Dashboard({
       <div className="cluster-list">
         {cards.map((card) => {
           const badge = BADGE_BY_CATEGORY[card.category];
-          return (
-            <div key={card.cluster_id} className="cluster-card">
+return (
+                <div
+                  key={card.cluster_id}
+                  className="cluster-card"
+                  data-category={card.category}
+                >
               <div className="cluster-top">
                 <div className="left">
                   <Badge text={badge.text} kind={badge.kind} />

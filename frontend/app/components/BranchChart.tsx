@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ClusterCard } from "@/lib/api";
 
@@ -24,9 +24,8 @@ const TRUNK_X1 = 780;
 const MAX_BRANCHES = 6;
 const MAX_LINES = 3;
 const NAME_FONT = 12.5;
-const CHAR_PX = 6.6; // approx Hanken Grotesk 12.5px average glyph width
+const CHAR_PX = 6.6;
 
-/** Greedy word wrap; ellipsis on the last line when words remain. */
 function wrapLabel(text: string, maxChars: number): string[] {
   const words = text.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
@@ -52,6 +51,68 @@ function wrapLabel(text: string, maxChars: number): string[] {
     lines[MAX_LINES - 1] = `${last}…`;
   }
   return lines;
+}
+
+/** Subtle chalk-dust particles rising from the branch growth */
+function BranchDust({ active }: { active: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [particles, setParticles] = useState<Array<{ x: number; y: number; vx: number; vy: number; life: number; color: string }>>([]);
+  const raf = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!active) return;
+    const canvas = canvasRef.current!;
+    const ctx = canvas.getContext("2d")!;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    let lastTime = 0;
+    function tick(time: number) {
+      const dt = (time - lastTime) / 1000;
+      lastTime = time;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      setParticles(prev => {
+        const next = prev.map(p => {
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vy -= 8 * dt; // gentle upward drift
+          p.life -= dt;
+          return p;
+        }).filter(p => p.life > 0);
+
+        // spawn new particles near branch endpoints
+        if (Math.random() < 0.15 * dt * 60) {
+          const branchX = 0.15 + Math.random() * 0.7;
+          const branchY = 0.35 + Math.random() * 0.45;
+          next.push({
+            x: branchX * canvas.width,
+            y: branchY * canvas.height,
+            vx: (Math.random() - 0.5) * 12,
+            vy: -20 - Math.random() * 30,
+            life: 1.5 + Math.random() * 1.5,
+            color: Math.random() < 0.5 ? "rgba(232,146,98,0.4)" : "rgba(143,216,172,0.35)"
+          });
+        }
+        return next;
+      });
+
+      particles.forEach(p => {
+        const alpha = Math.min(1, p.life) * 0.35;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = p.color.replace(/[\d.]+\)$/, `${alpha})`);
+        ctx.fill();
+      });
+
+      raf.current = requestAnimationFrame(tick);
+    }
+    raf.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf.current!);
+  }, [active]);
+
+  return <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 1 }} />;
 }
 
 /**
@@ -87,11 +148,18 @@ export default function BranchChart({ cards }: { cards: ClusterCard[] }) {
   }, [cards]);
 
   const summary = cards.map((c) => `${c.percentage}% ${c.label}`).join(", ");
+  const [dustActive, setDustActive] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDustActive(true), 1500);
+    return () => clearTimeout(t);
+  }, [cards.length]);
 
   if (cards.length === 0) return null;
 
   return (
-    <div className="branch-wrap">
+    <div className="branch-wrap" style={{ position: "relative" }}>
+      <BranchDust active={dustActive} />
       <svg
         viewBox={`0 0 ${W} ${H}`}
         role="img"
