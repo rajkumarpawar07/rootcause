@@ -42,6 +42,7 @@ def _stage4_cache_key(
     question_text: str,
     correct_concept: str,
     members: list[tuple[str, str]],
+    model: str,
 ) -> str:
     """members: [(student_id, reasoning_summary)] — order-sensitive by design."""
     payload = json.dumps(
@@ -49,6 +50,7 @@ def _stage4_cache_key(
             "q": question_text,
             "c": correct_concept or "",
             "m": [[sid, s] for sid, s in members],
+            "model": model,
         },
         ensure_ascii=False,
     )
@@ -425,10 +427,12 @@ def run_stage4(
                 continue
 
             reps = _representative_summaries([m["reasoning_summary"] for m in members])
+            model = os.environ.get("ROOTCAUSE_LLM_MODEL", DEFAULT_LLM_MODEL)
             key = _stage4_cache_key(
                 question_text,
                 correct_concept or "",
                 [(members[i]["student_id"], s) for i, s in reps],
+                model,
             )
             if key in cache:
                 labeled = dict(cache[key])
