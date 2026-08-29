@@ -134,5 +134,40 @@
       0,
       1
     ]
+  },
+  "81986d13c8fce372d412bad9c8f56a7d058a7a5007c4c1a7a73d22721eb08530": {
+    "label": "Relative heaviness reasoning for floating",
+    "gap": "Students focus on weight or heaviness comparisons without consistently using density (mass per volume), leading to misconceptions like coldness, state of matter, or size determining buoyancy.",
+    "reteach_suggestion": "Have students measure the mass of equal volumes of ice and water to discover the density difference, then connect this finding to why ice floats.",
+    "category": "misconception",
+    "_solid_positions": [
+      3,
+      4,
+      5,
+      7
+    ]
+  },
+  "2b662962bc75263cde4d2807019b474f6ee72d55e8b12e3a2d0e41c482b5214f": {
+    "label": "Ice floats because freezing makes it lighter",
+    "gap": "Students attribute ice's buoyancy to incorrect mechanisms like trapped air, weight loss, or cold as a substance, rather than the intrinsic molecular expansion that increases volume while mass stays constant.",
+    "reteach_suggestion": "Have students measure mass and volume of water before and after freezing to confirm mass conservation and volume increase, then use a molecular model to demonstrate how the open hexagonal lattice of ice lowers its density.",
+    "category": "misconception",
+    "_solid_positions": [
+      1
+    ]
+  },
+  "8faa68b6682888a34ab540b0335cf782e238a2421964d9aaa0995e46ab58851c": {
+    "label": "Trapped air causes floating misconception",
+    "gap": "Students attribute floating to trapped air, weight, size, or water's agency instead of understanding that ice floats because its solid density is lower than water's density.",
+    "reteach_suggestion": "Have students measure the density of bubble-free ice and water, or observe that degassed ice still floats, demonstrating that density difference—not trapped air—causes buoyancy.",
+    "category": "misconception",
+    "_solid_positions": []
+  },
+  "ee390d2bd46f76050ab749c815fc2abb8e725cdca998ac6434a34b6797e05167": {
+    "label": "Treats ice floating as self-evident fact",
+    "gap": "Students accept floating as an observed given or inherent property of ice rather than explaining it through density differences between solid and liquid water.",
+    "reteach_suggestion": "Have students measure the mass and volume of ice and water to calculate and compare densities, then predict whether ice will float based on which is less dense.",
+    "category": "misconception",
+    "_solid_positions": []
   }
 }
