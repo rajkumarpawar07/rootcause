@@ -434,6 +434,16 @@ def run_stage4(
                 [(members[i]["student_id"], s) for i, s in reps],
                 model,
             )
+            # backward compat: try old key (without model) if new key not found
+            if key not in cache:
+                old_key = _stage4_cache_key(
+                    question_text,
+                    correct_concept or "",
+                    [(members[i]["student_id"], s) for i, s in reps],
+                    "",
+                )
+                if old_key in cache:
+                    key = old_key
             if key in cache:
                 labeled = dict(cache[key])
                 solid_positions = labeled.pop("_solid_positions", [])
