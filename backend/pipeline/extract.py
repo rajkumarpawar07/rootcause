@@ -76,7 +76,16 @@ def parse_json_response(text: str) -> dict:
         raise ValueError(
             f"JSON response missing {missing} brace (likely token-truncated): {text[:200]}"
         )
-    return json.loads(cleaned[start : end + 1])
+    parsed = json.loads(cleaned[start : end + 1])
+    if not parsed:
+        raise ValueError(f"Empty JSON object from LLM: {text[:200]}")
+    if "reasoning_summary" not in parsed:
+        first_val = next(iter(parsed.values()), None)
+        if isinstance(first_val, str) and first_val:
+            parsed["reasoning_summary"] = first_val
+        else:
+            raise ValueError(f"Missing reasoning_summary in LLM response: {text[:200]}")
+    return parsed
 
 
 class ModelUnavailableError(RuntimeError):
