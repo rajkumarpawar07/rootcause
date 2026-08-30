@@ -69,6 +69,8 @@ def _save_cache(cache: dict) -> None:
 
 
 def parse_json_response(text: str) -> dict:
+    import logging
+    logging.warning(f"LLM raw response: {text[:500]}")
     cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.MULTILINE)
     start, end = cleaned.find("{"), cleaned.rfind("}")
     if start == -1 or end == -1:
@@ -213,7 +215,9 @@ def build_user_prompt(question_text: str, student_answer: str) -> str:
 def extract_reasoning(
     client: httpx.Client, api_key: str, question_text: str, student_answer: str
 ) -> str:
+    import logging
     prompt = build_user_prompt(question_text, student_answer)
+    logging.warning(f"Calling model with prompt length: {len(prompt)}")
     parsed = chat_completion(
         client,
         api_key,
@@ -221,6 +225,7 @@ def extract_reasoning(
         max_tokens=1000,
         parse=parse_json_response,
     )
+    logging.warning(f"Parsed response: {str(parsed)[:300]}")
     summary = parsed.get("reasoning_summary", "").strip()
     if not summary:
         for val in parsed.values():
