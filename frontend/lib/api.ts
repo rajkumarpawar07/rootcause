@@ -39,6 +39,16 @@ export interface ModelUnavailable {
   message: string;
 }
 
+export interface ConfigurationError {
+  error: "configuration_error";
+  message: string;
+}
+
+export interface PipelineError {
+  error: "pipeline_error";
+  message: string;
+}
+
 export function isInsufficient(body: unknown): body is { detail: InsufficientResponses } {
   return (
     typeof body === "object" &&
@@ -57,6 +67,26 @@ export function isModelUnavailable(body: unknown): body is { detail: ModelUnavai
     "detail" in body &&
     typeof (body as { detail: unknown }).detail === "object" &&
     (body as { detail: ModelUnavailable }).detail?.error === "model_unavailable"
+  );
+}
+
+export function isConfigurationError(body: unknown): body is { detail: ConfigurationError } {
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    "detail" in body &&
+    typeof (body as { detail: unknown }).detail === "object" &&
+    (body as { detail: ConfigurationError }).detail?.error === "configuration_error"
+  );
+}
+
+export function isPipelineError(body: unknown): body is { detail: PipelineError } {
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    "detail" in body &&
+    typeof (body as { detail: unknown }).detail === "object" &&
+    (body as { detail: PipelineError }).detail?.error === "pipeline_error"
   );
 }
 
@@ -83,6 +113,16 @@ export async function diagnose(payload: {
     if (res.status === 503 && isModelUnavailable(body)) {
       throw Object.assign(new Error(body.detail.message), {
         modelUnavailable: body.detail,
+      });
+    }
+    if (res.status === 503 && isConfigurationError(body)) {
+      throw Object.assign(new Error(body.detail.message), {
+        configurationError: body.detail,
+      });
+    }
+    if ((res.status === 500 || res.status === 503) && isPipelineError(body)) {
+      throw Object.assign(new Error(body.detail.message), {
+        pipelineError: body.detail,
       });
     }
     throw new Error(`Diagnose failed (${res.status})`);

@@ -75,6 +75,10 @@ export default function Home() {
         });
       } else if ((err as Error & { modelUnavailable?: unknown }).modelUnavailable) {
         setView({ kind: "form", error: (err as Error).message });
+      } else if ((err as Error & { configurationError?: unknown }).configurationError) {
+        setView({ kind: "form", error: (err as Error).message });
+      } else if ((err as Error & { pipelineError?: unknown }).pipelineError) {
+        setView({ kind: "form", error: (err as Error).message });
       } else {
         setView({
           kind: "form",

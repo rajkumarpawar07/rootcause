@@ -82,6 +82,9 @@ def diagnose(req: DiagnoseRequest) -> dict:
 
         feedback_by_student: dict[str, str] = {}
         if req.include_feedback:
+            api_key = os.environ.get("OPENROUTER_API_KEY", "")
+            if not api_key:
+                raise RuntimeError("OPENROUTER_API_KEY is not configured")
             by_student = {r["student_id"]: r for r in records}
             misconception_clusters = [c for c in clusters if c["category"] == "misconception"]
             with httpx.Client(timeout=TIMEOUT_SECONDS) as client:
@@ -90,11 +93,19 @@ def diagnose(req: DiagnoseRequest) -> dict:
                         rec = by_student[sid]
                         feedback_by_student[sid] = draft_feedback(
                             client,
-                            os.environ["OPENROUTER_API_KEY"],
+                            api_key,
                             rec["response_text"],
                             cluster["label"],
                             req.correct_concept or "",
                         )
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "configuration_error",
+                "message": str(exc),
+            },
+        ) from exc
     except ModelUnavailableError as exc:
         raise HTTPException(
             status_code=503,
@@ -104,6 +115,14 @@ def diagnose(req: DiagnoseRequest) -> dict:
                     "The AI providers are busy. RootCause retried GLM three times, "
                     "then tried its free fallback. Please try again shortly."
                 ),
+            },
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "pipeline_error",
+                "message": f"Pipeline failed: {exc}",
             },
         ) from exc
 
