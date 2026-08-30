@@ -69,24 +69,21 @@ def _save_cache(cache: dict) -> None:
 
 
 def parse_json_response(text: str) -> dict:
-    import logging
-    logging.warning(f"LLM raw response: {text[:500]}")
     cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.MULTILINE)
     start, end = cleaned.find("{"), cleaned.rfind("}")
     if start == -1 or end == -1:
-        missing = "opening" if start == -1 else "closing"
         raise ValueError(
-            f"JSON response missing {missing} brace (likely token-truncated): {text[:200]}"
+            f"No JSON found in LLM response. Raw text: {text[:300]}"
         )
     parsed = json.loads(cleaned[start : end + 1])
     if not parsed:
-        raise ValueError(f"Empty JSON object from LLM: {text[:200]}")
+        raise ValueError(f"Empty JSON object from LLM: {text[:300]}")
     if "reasoning_summary" not in parsed:
         first_val = next(iter(parsed.values()), None)
         if isinstance(first_val, str) and first_val:
             parsed["reasoning_summary"] = first_val
         else:
-            raise ValueError(f"Missing reasoning_summary in LLM response: {text[:200]}")
+            raise ValueError(f"Missing reasoning_summary in LLM response. Keys: {list(parsed.keys())}")
     return parsed
 
 
@@ -215,9 +212,7 @@ def build_user_prompt(question_text: str, student_answer: str) -> str:
 def extract_reasoning(
     client: httpx.Client, api_key: str, question_text: str, student_answer: str
 ) -> str:
-    import logging
     prompt = build_user_prompt(question_text, student_answer)
-    logging.warning(f"Calling model with prompt length: {len(prompt)}")
     parsed = chat_completion(
         client,
         api_key,
@@ -225,7 +220,6 @@ def extract_reasoning(
         max_tokens=1000,
         parse=parse_json_response,
     )
-    logging.warning(f"Parsed response: {str(parsed)[:300]}")
     summary = parsed.get("reasoning_summary", "").strip()
     if not summary:
         for val in parsed.values():
@@ -233,7 +227,8 @@ def extract_reasoning(
                 summary = val.strip()
                 break
     if not summary:
-        raise ValueError(f"Empty reasoning_summary in LLM response: {str(parsed)[:200]}")
+        raw_str = json.dumps(parsed, ensure_ascii=False)[:300]
+        raise ValueError(f"Empty reasoning_summary. Parsed response: {raw_str}")
     return summary
 
 
