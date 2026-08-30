@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 
 from pipeline.cluster import run_stage3
 from pipeline.embed import embed_reasoning
-from pipeline.extract import TIMEOUT_SECONDS, extract_batch
+from pipeline.extract import ModelUnavailableError, TIMEOUT_SECONDS, extract_batch
 from pipeline.label import draft_feedback, run_stage4
 
 MIN_RESPONSES = 8  # design doc screen 06: diagnostics need at least 8
@@ -74,26 +74,38 @@ def diagnose(req: DiagnoseRequest) -> dict:
         for idx, r in enumerate(req.responses)
     ]
 
-    records = extract_batch(req.question, responses)
-    embeddings = embed_reasoning(records)
-    clustering = run_stage3(records, embeddings)
-    clusters = run_stage4(req.question, req.correct_concept, records, clustering)
+    try:
+        records = extract_batch(req.question, responses)
+        embeddings = embed_reasoning(records)
+        clustering = run_stage3(records, embeddings)
+        clusters = run_stage4(req.question, req.correct_concept, records, clustering)
 
-    feedback_by_student: dict[str, str] = {}
-    if req.include_feedback:
-        by_student = {r["student_id"]: r for r in records}
-        misconception_clusters = [c for c in clusters if c["category"] == "misconception"]
-        with httpx.Client(timeout=TIMEOUT_SECONDS) as client:
-            for cluster in misconception_clusters:
-                for sid in cluster["student_ids"]:
-                    rec = by_student[sid]
-                    feedback_by_student[sid] = draft_feedback(
-                        client,
-                        os.environ["OPENROUTER_API_KEY"],
-                        rec["response_text"],
-                        cluster["label"],
-                        req.correct_concept or "",
-                    )
+        feedback_by_student: dict[str, str] = {}
+        if req.include_feedback:
+            by_student = {r["student_id"]: r for r in records}
+            misconception_clusters = [c for c in clusters if c["category"] == "misconception"]
+            with httpx.Client(timeout=TIMEOUT_SECONDS) as client:
+                for cluster in misconception_clusters:
+                    for sid in cluster["student_ids"]:
+                        rec = by_student[sid]
+                        feedback_by_student[sid] = draft_feedback(
+                            client,
+                            os.environ["OPENROUTER_API_KEY"],
+                            rec["response_text"],
+                            cluster["label"],
+                            req.correct_concept or "",
+                        )
+    except ModelUnavailableError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "model_unavailable",
+                "message": (
+                    "The AI providers are busy. RootCause retried GLM three times, "
+                    "then tried its free fallback. Please try again shortly."
+                ),
+            },
+        ) from exc
 
     enriched_records = [
         {**r, "feedback_note": feedback_by_student[r["student_id"]]}

@@ -2,24 +2,36 @@
 
 import { useMemo, useState } from "react";
 
+export interface FormDraft {
+  question: string;
+  correctConcept: string;
+  raw: string;
+  includeFeedback: boolean;
+}
+
 export default function Screen01Form({
   onSubmit,
   error,
+  initial,
 }: {
   onSubmit: (
     question: string,
     correctConcept: string,
+    raw: string,
     responses: string[],
     includeFeedback: boolean
   ) => void;
   error?: string;
+  initial?: FormDraft;
 }) {
-  const [question, setQuestion] = useState("Why does ice float on water?");
+  const [question, setQuestion] = useState(initial?.question ?? "Why does ice float on water?");
   const [correctConcept, setCorrectConcept] = useState(
-    "Density determines whether an object floats"
+    initial?.correctConcept ?? "Density determines whether an object floats"
   );
-  const [raw, setRaw] = useState("");
-  const [includeFeedback, setIncludeFeedback] = useState(false);
+  const [raw, setRaw] = useState(initial?.raw ?? "");
+  const [includeFeedback, setIncludeFeedback] = useState(
+    initial?.includeFeedback ?? false
+  );
 
   const responses = useMemo(
     () =>
@@ -46,6 +58,7 @@ export default function Screen01Form({
             onSubmit(
               question.trim(),
               correctConcept.trim(),
+              raw,
               responses,
               includeFeedback
             );
@@ -99,7 +112,7 @@ export default function Screen01Form({
             </span>
           </label>
           <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
-            Find the patterns
+            {error ? "Try again" : "Find the patterns"}
           </button>
           {error && <div className="error-note">{error}</div>}
         </form>

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import CenterState, { SeedlingIcon } from "./components/CenterState";
-import Screen01Form from "./components/Screen01Form";
+import Screen01Form, { FormDraft } from "./components/Screen01Form";
 import Screen02Processing from "./components/Screen02Processing";
 import Screen03Dashboard from "./components/Screen03Dashboard";
 import Screen04Detail from "./components/Screen04Detail";
@@ -15,7 +15,7 @@ type View =
   | { kind: "processing"; total: number; withNotes: boolean }
   | { kind: "dashboard" }
   | { kind: "detail"; clusterId: number }
-  | { kind: "toofew"; received: number };
+  | { kind: "toofew"; received: number; minimum: number };
 
 // Stage list advances while the real pipeline runs server-side; each stage
 // names an actual pipeline step (design doc principle 04).
@@ -24,6 +24,7 @@ const STAGE_ADVANCE_MS = 80_000;
 export default function Home() {
   const [view, setView] = useState<View>({ kind: "empty" });
   const [result, setResult] = useState<DiagnoseResult | null>(null);
+  const [draft, setDraft] = useState<FormDraft | null>(null);
   const [stage, setStage] = useState(0);
   const stageTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -39,9 +40,12 @@ export default function Home() {
   const runDiagnostic = async (
     question: string,
     correctConcept: string,
+    raw: string,
     responses: string[],
     includeFeedback: boolean
   ) => {
+    // Keep what was pasted so an error or too-few return can restore it.
+    setDraft({ question, correctConcept, raw, includeFeedback });
     setResult(null);
     setStage(0);
     setView({ kind: "processing", total: responses.length, withNotes: includeFeedback });
@@ -61,10 +65,16 @@ export default function Home() {
       setView({ kind: "dashboard" });
     } catch (err) {
       const insufficient = (
-        err as Error & { insufficient?: { received: number } }
+        err as Error & { insufficient?: { received: number; minimum: number } }
       ).insufficient;
       if (insufficient) {
-        setView({ kind: "toofew", received: insufficient.received });
+        setView({
+          kind: "toofew",
+          received: insufficient.received,
+          minimum: insufficient.minimum,
+        });
+      } else if ((err as Error & { modelUnavailable?: unknown }).modelUnavailable) {
+        setView({ kind: "form", error: (err as Error).message });
       } else {
         setView({
           kind: "form",
@@ -94,7 +104,13 @@ export default function Home() {
       );
       break;
     case "form":
-      screen = <Screen01Form onSubmit={runDiagnostic} error={view.error} />;
+      screen = (
+        <Screen01Form
+          onSubmit={runDiagnostic}
+          error={view.error}
+          initial={draft ?? undefined}
+        />
+      );
       break;
     case "processing":
       screen = (
@@ -136,7 +152,7 @@ export default function Home() {
         <div className="panel">
           <CenterState
             title="Add a few more responses"
-            body={`Diagnostics need at least 8 responses to find a reliable pattern. This one has ${view.received}.`}
+            body={`Diagnostics need at least ${view.minimum} responses to find a reliable pattern. This one has ${view.received}.`}
             actionLabel="Add more responses"
             onAction={() => setView({ kind: "form" })}
           />

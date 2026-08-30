@@ -70,5 +70,98 @@
     "reteach_suggestion": "Students measure and compare the density of ice and liquid water to discover that ice's lower density causes it to float.",
     "category": "misconception",
     "_solid_positions": []
+  },
+  "4eede0b6fc5674a8188aee5483014c948f5d698ab5efd3ebacb4f05abb91cccd": {
+    "label": "Explaining floating via weight, phase, or composition",
+    "gap": "Students attribute buoyancy to incorrect factors like coldness, solid state, size, or trapped air instead of recognizing that ice floats because its molecular expansion upon freezing makes it less dense than liquid water.",
+    "reteach_suggestion": "Have students measure the mass of equal volumes of ice and water to discover ice's lower density, then use molecular modeling kits to build water's hexagonal ice lattice showing how hydrogen bonding creates empty space that increases volume.",
+    "category": "misconception",
+    "_solid_positions": [
+      3,
+      4,
+      5,
+      7
+    ]
+  },
+  "b59b8b84778fed3f3e31afd4d5d7b7ba3a5af0f0ff582a0da60641f54209e3f8": {
+    "supports_correct_concept": true,
+    "votes": [
+      true,
+      true,
+      true
+    ]
+  },
+  "5c92566392164a08883d53566e46d75e4dd55dba29f5e05d78c0b92dd0cc7d55": {
+    "supports_correct_concept": true,
+    "votes": [
+      true,
+      true,
+      true
+    ]
+  },
+  "234761b35ac4a2e95b7ebac4ab5b5ca5a6d680a063b7e7ef94986a7af561077b": {
+    "supports_correct_concept": true,
+    "votes": [
+      true,
+      true
+    ]
+  },
+  "64eccabbee4086679108f28341a6617dd5243749b1abb7f0cf48595cefe5d28e": {
+    "supports_correct_concept": true,
+    "votes": [
+      true,
+      false,
+      true
+    ]
+  },
+  "5100288268543a023eaa618f67d778951f3c7deb3c156496682340cbc89dbb32": {
+    "label": "Ice floats because it gets lighter",
+    "gap": "Students attribute ice's buoyancy to factors like trapped air, weight loss, or coldness rather than the intrinsic density decrease from water's expansion upon freezing.",
+    "reteach_suggestion": "Have students measure mass and volume of water before and after freezing to calculate density changes, then model how water molecules form an open hexagonal lattice when frozen, increasing volume while mass stays constant.",
+    "category": "misconception",
+    "_solid_positions": [
+      1
+    ]
+  },
+  "43459b10e983948a060fb170a5343873d24c56ef245c66dbe1e0eb8bbdefc7fd": {
+    "supports_correct_concept": true,
+    "votes": [
+      true,
+      true,
+      true
+    ]
+  },
+  "36ba0ca859adfeda1589af586c29e62a1632400635ad2022ce082c75006724db": {
+    "label": "Ice floats due to trapped air bubbles",
+    "gap": "Students attribute buoyancy to trapped air or low weight rather than to ice being less dense than water because water expands when freezing.",
+    "reteach_suggestion": "Have students compare the density of solid ice (made from boiled, degassed water) and liquid water to show ice floats even without air pockets, then discuss how expansion upon freezing lowers density.",
+    "category": "misconception",
+    "_solid_positions": []
+  },
+  "4a3e112055253d9f560895f9a9c4fc6a3692df86ad6f58b7a42848c559beff41": {
+    "label": "Everyday observation without scientific explanation",
+    "gap": "Students treat ice floating as an observed fact rather than explaining it through density differences.",
+    "reteach_suggestion": "Have students compare the mass and volume of equal amounts of ice and water to discover that ice is less dense, then discuss molecular arrangement.",
+    "category": "misconception",
+    "_solid_positions": []
+  },
+  "c8f98a211788a66f0e77d5f6696ab2b7aad85e40986ad55fd5f7e069193527d3": {
+    "label": "Lighter or less-dense objects float",
+    "gap": "Most students substitute weight, coldness, phase, trapped air, or size for the actual determining factor—density comparison between the object and the fluid—conflating 'light' with 'less dense' without recognizing that equal volumes must be compared.",
+    "reteach_suggestion": "Give students equal-sized cubes of different materials (e.g., wax, metal, plastic), have them measure mass and volume to calculate each cube's density and compare it to water's density, then predict and test floating to see that density—not weight, coldness, or air—predicts the outcome.",
+    "category": "misconception",
+    "_solid_positions": [
+      4,
+      8,
+      9,
+      10
+    ]
+  },
+  "529185b1d5231743b260e462f1bffb31b4e78b33b8b7017319ba2cdcdb6e7cc0": {
+    "label": "Relying on observation instead of density explanation",
+    "gap": "The students fail to link floating to density differences, relying instead on memorized facts or vague intuition.",
+    "reteach_suggestion": "Have students measure and compare the densities of ice and liquid water, then predict and test which floats.",
+    "category": "misconception",
+    "_solid_positions": []
   }
 }

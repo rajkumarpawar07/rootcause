@@ -34,6 +34,11 @@ export interface InsufficientResponses {
   minimum: number;
 }
 
+export interface ModelUnavailable {
+  error: "model_unavailable";
+  message: string;
+}
+
 export function isInsufficient(body: unknown): body is { detail: InsufficientResponses } {
   return (
     typeof body === "object" &&
@@ -42,6 +47,16 @@ export function isInsufficient(body: unknown): body is { detail: InsufficientRes
     typeof (body as { detail: unknown }).detail === "object" &&
     (body as { detail: InsufficientResponses }).detail?.error ===
       "insufficient_responses"
+  );
+}
+
+export function isModelUnavailable(body: unknown): body is { detail: ModelUnavailable } {
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    "detail" in body &&
+    typeof (body as { detail: unknown }).detail === "object" &&
+    (body as { detail: ModelUnavailable }).detail?.error === "model_unavailable"
   );
 }
 
@@ -63,6 +78,11 @@ export async function diagnose(payload: {
     if (res.status === 422 && isInsufficient(body)) {
       throw Object.assign(new Error(body.detail.message), {
         insufficient: body.detail,
+      });
+    }
+    if (res.status === 503 && isModelUnavailable(body)) {
+      throw Object.assign(new Error(body.detail.message), {
+        modelUnavailable: body.detail,
       });
     }
     throw new Error(`Diagnose failed (${res.status})`);

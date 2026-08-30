@@ -714,6 +714,22 @@ input, textarea { caret-color: var(--signal); }
   font-size: 13px;
   color: var(--chalk-mid);
 }
+.detail-gap {
+  border-top: 1px solid var(--hairline);
+  margin-top: 18px;
+  padding: 16px 0 4px;
+  font-size: 14px;
+  color: #cfe9d8;
+}
+.detail-gap .note-label {
+  font-family: var(--font-data);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 5px;
+  color: var(--mint);
+}
 
 .student-row {
   border-top: 1px solid var(--hairline);

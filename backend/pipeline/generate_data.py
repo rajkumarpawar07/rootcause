@@ -1,6 +1,6 @@
 """Grow the §9 seed dataset to a full class (~30 responses).
 
-Generates new variations per misconception category with stealth/ox-alpha
+Generates new variations per misconception category with z-ai/glm-5.2:free
 via OpenRouter, then merges them with the original seed into an expanded
 labeled dataset for pipeline validation at demo scale.
 
@@ -71,7 +71,6 @@ Respond as JSON: {{"answers": ["...", "...", ...]}}"""
 def generate_category(
     client: httpx.Client,
     api_key: str,
-    model: str,
     expected_cluster: str,
     seed_rows: list[dict],
     count: int,
@@ -82,8 +81,9 @@ def generate_category(
         examples=examples,
         n=count,
     )
-    text = chat_completion(client, api_key, model, prompt, max_tokens=6000)
-    payload = parse_json_response(text)
+    payload = chat_completion(
+        client, api_key, prompt, max_tokens=6000, parse=parse_json_response
+    )
     answers = payload.get("answers")
     if not isinstance(answers, list) or len(answers) != count:
         raise ValueError(
@@ -113,7 +113,6 @@ def main() -> int:
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         raise RuntimeError("OPENROUTER_API_KEY is not set")
-    model = os.environ.get("ROOTCAUSE_LLM_MODEL", "stealth/ox-alpha")
 
     # Resume from partial output if present; otherwise start from the seed.
     if out_path.exists() and not args.refresh:
@@ -141,7 +140,7 @@ def main() -> int:
                 for r in expanded
                 if r["expected_cluster"] == cluster_name
             ]
-            answers = generate_category(client, api_key, model, cluster_name, seed_rows, needed)
+            answers = generate_category(client, api_key, cluster_name, seed_rows, needed)
             for answer in answers:
                 expanded.append(
                     {

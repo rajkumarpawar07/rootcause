@@ -3,8 +3,8 @@
 One LLM call per response: describe the mental model behind the answer,
 never judge correctness. Prompt is verbatim from section 5 of the brief.
 
-LLM transport: OpenRouter (OpenAI-compatible chat completions), model
-`stealth/ox-alpha` by default, configurable via ROOTCAUSE_LLM_MODEL.
+LLM transport: OpenRouter (OpenAI-compatible chat completions), with
+`z-ai/glm-5.2:free` as the preferred model and a controlled free fallback.
 """
 
 import hashlib
@@ -12,7 +12,9 @@ import json
 import os
 import re
 import time
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import httpx
 from dotenv import load_dotenv
@@ -35,8 +37,10 @@ logic.
 Respond as JSON: {{"reasoning_summary": "..."}}"""
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-DEFAULT_MODEL = "stealth/ox-alpha"
-MAX_RETRIES = 2
+OPENROUTER_MODEL = "z-ai/glm-5.2:free"
+FALLBACK_OPENROUTER_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
+PRIMARY_MODEL_ATTEMPTS = 3
+FALLBACK_MODEL_ATTEMPTS = 3
 TIMEOUT_SECONDS = 60
 
 STAGE1_CACHE = Path(__file__).resolve().parents[2] / "demo_data" / "stage1_cache.json"
@@ -75,14 +79,59 @@ def parse_json_response(text: str) -> dict:
     return json.loads(cleaned[start : end + 1])
 
 
-def chat_completion(
+class ModelUnavailableError(RuntimeError):
+    """Both OpenRouter model paths were unavailable after their retry budgets."""
+
+
+def _request_completion(
     client: httpx.Client,
     api_key: str,
     model: str,
     user_prompt: str,
-    max_tokens: int = 1500,
-    max_retries: int = 5,
+    max_tokens: int,
+    temperature: float,
 ) -> str:
+    resp = client.post(
+        OPENROUTER_URL,
+        headers={"Authorization": f"Bearer {api_key}"},
+        json={
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+        },
+    )
+    resp.raise_for_status()
+    payload = resp.json()
+    choices = payload.get("choices") or []
+    if not choices:
+        raise ValueError(f"OpenRouter returned no choices: {str(payload)[:200]}")
+    message = choices[0].get("message") or {}
+    content = str(message.get("content") or "").strip()
+    if not content:
+        finish_reason = choices[0].get("finish_reason")
+        raise ValueError(
+            f"Empty content (finish_reason={finish_reason}): {str(payload)[:200]}"
+        )
+    return content
+
+
+def chat_completion(
+    client: httpx.Client,
+    api_key: str,
+    user_prompt: str,
+    max_tokens: int = 1500,
+    parse: Callable[[str], Any] | None = None,
+) -> Any:
+    """Request a completion (optionally parsed) under the retry/fallback budget.
+
+    When `parse` is given it runs inside the retry loop, so a 200 response
+    whose body fails to parse (truncated JSON, prose instead of JSON, ...)
+    consumes an attempt and can trigger the model fallback instead of
+    escaping as an unhandled ValueError."""
     # Low temperature by default: stage-1 summary drift between identical
     # requests measured mean cosine 0.88 run-to-run, which churns cluster
     # boundaries downstream (purity swung 0.40 -> 0.57 on the same config).
@@ -90,60 +139,41 @@ def chat_completion(
         temperature = float(os.environ.get("ROOTCAUSE_LLM_TEMPERATURE", "0.2"))
     except ValueError:
         temperature = 0.2
-    # Note: stealth/ox-alpha is a heavy reasoning model — its hidden
-    # reasoning tokens draw down max_tokens, so responses can come back
-    # with empty content when the budget is exhausted mid-reasoning.
-    # On empty content we grow the budget and retry.
+    # A rate-limited preferred model gets exactly three attempts before the
+    # pipeline switches to its declared fallback. Keeping the policy here,
+    # rather than at every stage, prevents nested retry loops from turning a
+    # three-attempt policy into dozens of requests.
     last_error: Exception | None = None
-    budget = max_tokens
-    for attempt in range(max_retries + 1):
-        resp = client.post(
-            OPENROUTER_URL,
-            headers={"Authorization": f"Bearer {api_key}"},
-            json={
-                "model": model,
-                "max_tokens": budget,
-                "temperature": temperature,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt},
-                ],
-            },
-        )
-        if resp.status_code == 429:
-            retry_after = resp.headers.get("retry-after")
-            delay = float(retry_after) if retry_after else min(2 ** attempt * 5, 120)
-            last_error = httpx.HTTPStatusError(
-                "429 Too Many Requests", request=resp.request, response=resp
+    model_attempts = (
+        (OPENROUTER_MODEL, PRIMARY_MODEL_ATTEMPTS),
+        (FALLBACK_OPENROUTER_MODEL, FALLBACK_MODEL_ATTEMPTS),
+    )
+    for model_index, (model, attempts) in enumerate(model_attempts):
+        budget = max_tokens
+        for attempt in range(attempts):
+            try:
+                content = _request_completion(
+                    client, api_key, model, user_prompt, budget, temperature
+                )
+                return parse(content) if parse else content
+            except (httpx.HTTPError, ValueError) as exc:
+                last_error = exc
+                if attempt + 1 < attempts:
+                    if isinstance(exc, ValueError) and "finish_reason=length" in str(exc):
+                        budget = min(budget * 2, 32000)
+                    delay = attempt + 1
+                    print(f"  {model} failed; retrying in {delay}s ({attempt + 1}/{attempts})...")
+                    time.sleep(delay)
+        if model_index == 0:
+            print(
+                f"  {OPENROUTER_MODEL} failed after {PRIMARY_MODEL_ATTEMPTS} attempts; "
+                f"trying fallback {FALLBACK_OPENROUTER_MODEL}..."
             )
-            if attempt < max_retries:
-                print(f"  rate limited, waiting {delay:.0f}s...")
-                time.sleep(delay)
-                continue
-            raise last_error
-        resp.raise_for_status()
-        payload = resp.json()
-        choices = payload.get("choices") or []
-        if not choices:
-            raise ValueError(f"OpenRouter returned no choices: {str(payload)[:200]}")
-        message = choices[0].get("message") or {}
-        content = str(message.get("content") or "").strip()
-        if not content:
-            finish_reason = choices[0].get("finish_reason")
-            last_error = ValueError(
-                f"Empty content (finish_reason={finish_reason}): {str(payload)[:200]}"
-            )
-            if attempt < max_retries:
-                if finish_reason == "length":
-                    budget = min(budget * 2, 32000)
-                    print(f"  empty content after token truncation, retrying with {budget}...")
-                else:
-                    print("  empty content, retrying...")
-                time.sleep(2)
-                continue
-            raise last_error
-        return content
-    raise last_error or RuntimeError("chat_completion exhausted retries")
+    raise ModelUnavailableError(
+        "Both OpenRouter models were unavailable after retrying: "
+        f"{OPENROUTER_MODEL} ({PRIMARY_MODEL_ATTEMPTS} attempts), then "
+        f"{FALLBACK_OPENROUTER_MODEL} ({FALLBACK_MODEL_ATTEMPTS} attempts)."
+    ) from last_error
 
 
 def summary_word_limit() -> int:
@@ -175,20 +205,17 @@ def extract_reasoning(
     client: httpx.Client, api_key: str, question_text: str, student_answer: str
 ) -> str:
     prompt = build_user_prompt(question_text, student_answer)
-    model = os.environ.get("ROOTCAUSE_LLM_MODEL", DEFAULT_MODEL)
-    last_error = None
-    for attempt in range(MAX_RETRIES + 1):
-        try:
-            text = chat_completion(client, api_key, model, prompt, max_tokens=1000)
-            summary = parse_json_response(text).get("reasoning_summary", "").strip()
-            if not summary:
-                raise ValueError("Empty reasoning_summary in LLM response")
-            return summary
-        except Exception as exc:  # transient API/parse failures -> retry
-            last_error = exc
-            if attempt < MAX_RETRIES:
-                time.sleep(2 ** attempt)
-    raise RuntimeError(f"Stage 1 failed after {MAX_RETRIES + 1} attempts: {last_error}")
+    parsed = chat_completion(
+        client,
+        api_key,
+        prompt,
+        max_tokens=1000,
+        parse=parse_json_response,
+    )
+    summary = parsed.get("reasoning_summary", "").strip()
+    if not summary:
+        raise ValueError("Empty reasoning_summary in LLM response")
+    return summary
 
 
 def extract_batch(

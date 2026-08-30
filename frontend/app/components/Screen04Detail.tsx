@@ -29,6 +29,7 @@ export default function Screen04Detail({
   onBack: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const badge = BADGE_BY_CATEGORY[cluster.category];
   const byId = new Map(result.records.map((r) => [r.student_id, r]));
   const members = cluster.student_ids
@@ -44,9 +45,17 @@ export default function Screen04Detail({
           (m.feedback_note ? `Suggested note: ${m.feedback_note}` : "")
       )
       .join("\n\n");
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setCopyFailed(false);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard permission denied or unavailable — tell the user instead
+      // of failing silently.
+      setCopyFailed(true);
+      setCopied(false);
+    }
   };
 
   return (
@@ -62,6 +71,12 @@ export default function Screen04Detail({
             {cluster.size} of {result.responses_analyzed} students
           </span>
         </div>
+        {cluster.gap && (
+          <p className="detail-gap">
+            <span className="note-label">The gap</span>
+            {cluster.gap}
+          </p>
+        )}
         <div>
           {members.map((m) => (
             <div key={m.student_id} className="student-row">
@@ -78,7 +93,7 @@ export default function Screen04Detail({
         {notesCount > 0 && (
           <div className="copy-btn">
             <button className="btn btn-secondary" onClick={copyAll}>
-              {copied ? "Copied" : "Copy all feedback for this group"}
+              {copied ? "Copied" : copyFailed ? "Copy failed — try again" : "Copy all feedback for this group"}
             </button>
           </div>
         )}

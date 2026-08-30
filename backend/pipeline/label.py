@@ -29,14 +29,17 @@ import numpy as np
 from dotenv import load_dotenv
 
 from .embed import embed_texts
-from .extract import chat_completion, parse_json_response
+from .extract import OPENROUTER_MODEL, chat_completion, parse_json_response
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 STAGE4_CACHE = Path(__file__).resolve().parents[2] / "demo_data" / "stage4_cache.json"
 
-DEFAULT_LLM_MODEL = "stealth/ox-alpha"
-
+# Keys written before the GLM->Nemotron fallback refactor embedded the model
+# string that was live at cache-build time (nemotron via ROOTCAUSE_LLM_MODEL,
+# or none at all in the earliest format). Lookups fall back through these so
+# committed cache entries keep hitting; new writes always use OPENROUTER_MODEL.
+LEGACY_CACHE_MODELS = ["", "nvidia/nemotron-3-ultra-550b-a55b:free", "stealth/ox-alpha"]
 
 def _stage4_cache_key(
     question_text: str,
@@ -133,16 +136,14 @@ def verify_supports_concept(
     last_error: Exception | None = None
     for _ in range(VERIFY_VOTES):
         try:
-            text = chat_completion(
+            parsed = chat_completion(
                 client,
                 api_key,
-                os.environ.get("ROOTCAUSE_LLM_MODEL", DEFAULT_LLM_MODEL),
                 prompt,
                 max_tokens=4000,
+                parse=parse_json_response,
             )
-            votes.append(
-                bool(parse_json_response(text).get("supports_correct_concept"))
-            )
+            votes.append(bool(parsed.get("supports_correct_concept")))
         except Exception as exc:
             last_error = exc
     if not votes:
@@ -315,30 +316,21 @@ def label_cluster(
         )
         + CATEGORY_INSTRUCTION.format(n=len(members))
     )
-    # Generous token budget: stealth/ox-alpha spends hidden reasoning tokens
-    # before emitting any content, and long gap/reteach text can push the
-    # JSON past smaller budgets mid-object.
-    last_error: Exception | None = None
-    for attempt in range(3):
-        try:
-            text = chat_completion(
-                client,
-                api_key,
-                os.environ.get("ROOTCAUSE_LLM_MODEL", DEFAULT_LLM_MODEL),
-                prompt,
-                max_tokens=6000,
-            )
-            payload, category, solid_positions = _strip_fields(parse_json_response(text))
-            return {
-                "label": str(payload.get("label", "")).strip() or "Shared reasoning pattern",
-                "gap": str(payload.get("gap", "")).strip(),
-                "reteach_suggestion": str(payload.get("reteach_suggestion", "")).strip(),
-                "category": category,
-                "_solid_positions": solid_positions,
-            }
-        except Exception as exc:  # truncation/parse/transient -> retry
-            last_error = exc
-    raise RuntimeError(f"Stage 4 labeling failed after retries: {last_error}")
+    # The transport owns retries and the fallback policy. Calling it once
+    # here ensures model failures cannot multiply into nested retries; the
+    # parse callback keeps malformed 200-responses inside that same budget.
+    payload, category, solid_positions = _strip_fields(
+        chat_completion(
+            client, api_key, prompt, max_tokens=6000, parse=parse_json_response
+        )
+    )
+    return {
+        "label": str(payload.get("label", "")).strip() or "Shared reasoning pattern",
+        "gap": str(payload.get("gap", "")).strip(),
+        "reteach_suggestion": str(payload.get("reteach_suggestion", "")).strip(),
+        "category": category,
+        "_solid_positions": solid_positions,
+    }
 
 
 def draft_feedback(
@@ -356,7 +348,6 @@ def draft_feedback(
     text = chat_completion(
         client,
         api_key,
-        os.environ.get("ROOTCAUSE_LLM_MODEL", DEFAULT_LLM_MODEL),
         prompt,
         max_tokens=6000,  # reasoning model: leave room for hidden reasoning
     )
@@ -427,23 +418,25 @@ def run_stage4(
                 continue
 
             reps = _representative_summaries([m["reasoning_summary"] for m in members])
-            model = os.environ.get("ROOTCAUSE_LLM_MODEL", DEFAULT_LLM_MODEL)
             key = _stage4_cache_key(
                 question_text,
                 correct_concept or "",
                 [(members[i]["student_id"], s) for i, s in reps],
-                model,
+                OPENROUTER_MODEL,
             )
-            # backward compat: try old key (without model) if new key not found
+            # backward compat: caches built before the fallback refactor keyed
+            # on the then-live model string — fall back through those entries
             if key not in cache:
-                old_key = _stage4_cache_key(
-                    question_text,
-                    correct_concept or "",
-                    [(members[i]["student_id"], s) for i, s in reps],
-                    "",
-                )
-                if old_key in cache:
-                    key = old_key
+                for legacy_model in LEGACY_CACHE_MODELS:
+                    old_key = _stage4_cache_key(
+                        question_text,
+                        correct_concept or "",
+                        [(members[i]["student_id"], s) for i, s in reps],
+                        legacy_model,
+                    )
+                    if old_key in cache:
+                        key = old_key
+                        break
             if key in cache:
                 labeled = dict(cache[key])
                 solid_positions = labeled.pop("_solid_positions", [])

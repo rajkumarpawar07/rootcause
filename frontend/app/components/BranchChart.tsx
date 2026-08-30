@@ -57,7 +57,10 @@ function wrapLabel(text: string, maxChars: number): string[] {
 function BranchDust({ active }: { active: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [particles, setParticles] = useState<Array<{ x: number; y: number; vx: number; vy: number; life: number; color: string }>>([]);
+  const particlesRef = useRef(particles);
   const raf = useRef<number | null>(null);
+
+  useEffect(() => { particlesRef.current = particles; }, [particles]);
 
   useEffect(() => {
     if (!active) return;
@@ -98,7 +101,7 @@ function BranchDust({ active }: { active: boolean }) {
         return next;
       });
 
-      particles.forEach(p => {
+      particlesRef.current.forEach(p => {
         const alpha = Math.min(1, p.life) * 0.35;
         ctx.beginPath();
         ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
