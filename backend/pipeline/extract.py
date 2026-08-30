@@ -223,7 +223,12 @@ def extract_reasoning(
     )
     summary = parsed.get("reasoning_summary", "").strip()
     if not summary:
-        raise ValueError("Empty reasoning_summary in LLM response")
+        for val in parsed.values():
+            if isinstance(val, str) and len(val.strip()) > 10:
+                summary = val.strip()
+                break
+    if not summary:
+        raise ValueError(f"Empty reasoning_summary in LLM response: {str(parsed)[:200]}")
     return summary
 
 
