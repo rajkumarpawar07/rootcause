@@ -35,11 +35,11 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 STAGE4_CACHE = Path(__file__).resolve().parents[2] / "demo_data" / "stage4_cache.json"
 
-# Keys written before the GLM->Nemotron fallback refactor embedded the model
+# Keys written before the MiniMax->Nemotron fallback refactor embedded the model
 # string that was live at cache-build time (nemotron via ROOTCAUSE_LLM_MODEL,
 # or none at all in the earliest format). Lookups fall back through these so
 # committed cache entries keep hitting; new writes always use OPENROUTER_MODEL.
-LEGACY_CACHE_MODELS = ["", "nvidia/nemotron-3-ultra-550b-a55b:free", "stealth/ox-alpha"]
+LEGACY_CACHE_MODELS = ["", "nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3.5-lightning:free", "minimax/minimax-m3:free"]
 
 def _stage4_cache_key(
     question_text: str,

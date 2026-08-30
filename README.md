@@ -89,7 +89,7 @@ python -m venv .venv
 pip install -r backend\requirements.txt
 ```
 
-Stages 1 and 4 use OpenRouter. They try `z-ai/glm-5.2:free` up to three times, then automatically use `nvidia/nemotron-3-ultra-550b-a55b:free` if GLM remains unavailable. Put `OPENROUTER_API_KEY=...` in a `.env` file at the repo root (already gitignored).
+Stages 1 and 4 use OpenRouter. They try `minimax/minimax-m3:free` up to three times, then automatically use `nvidia/nemotron-3.5-lightning:free` if MiniMax remains unavailable. Put `OPENROUTER_API_KEY=...` in a `.env` file at the repo root (already gitignored).
 
 ## Validate the pipeline
 

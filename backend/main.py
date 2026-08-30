@@ -112,7 +112,7 @@ def diagnose(req: DiagnoseRequest) -> dict:
             detail={
                 "error": "model_unavailable",
                 "message": (
-                    "The AI providers are busy. RootCause retried GLM three times, "
+                    "The AI providers are busy. RootCause retried MiniMax three times, "
                     "then tried its free fallback. Please try again shortly."
                 ),
             },

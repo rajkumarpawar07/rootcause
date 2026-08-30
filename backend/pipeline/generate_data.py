@@ -1,6 +1,6 @@
 """Grow the §9 seed dataset to a full class (~30 responses).
 
-Generates new variations per misconception category with z-ai/glm-5.2:free
+Generates new variations per misconception category with minimax/minimax-m3:free
 via OpenRouter, then merges them with the original seed into an expanded
 labeled dataset for pipeline validation at demo scale.
 

@@ -26,7 +26,7 @@ Is the application functional, stable, and intuitive to use? Judges will look at
 The Pitch & Demo (25 Points)
 How well did the team communicate their vision? Points are awarded for a clear, concise, and engaging 2-minute video that clearly explains the "why" and "how" behind the project.
 | **Core idea** | Cluster a class's open-ended answers into shared misconceptions, surfaced as a teacher dashboard |
-| **Primary stack** | OpenRouter (`z-ai/glm-5.2:free`, then `nvidia/nemotron-3-ultra-550b-a55b:free`) + sentence-transformers + scikit-learn / HDBSCAN + React or Streamlit |
+| **Primary stack** | OpenRouter (`minimax/minimax-m3:free`, then `nvidia/nemotron-3.5-lightning:free`) + sentence-transformers + scikit-learn / HDBSCAN + React or Streamlit |
 
 ## Table of contents
 
@@ -202,7 +202,7 @@ correct idea. Do not simply say "incorrect."
 
 | Layer | Tool | Why |
 |---|---|---|
-| LLM calls | OpenRouter (GLM, then Nemotron fallback) | Reasoning extraction and cluster labeling, with three GLM attempts before the free fallback |
+| LLM calls | OpenRouter (MiniMax, then Nemotron fallback) | Reasoning extraction and cluster labeling, with three MiniMax attempts before the free fallback |
 | Embeddings | `sentence-transformers` (`all-MiniLM-L6-v2`) | Free, local, no extra API key, fast enough for a classroom-sized batch |
 | Clustering | `scikit-learn` (KMeans) or `hdbscan` | HDBSCAN auto-picks cluster count and handles outliers as "unclear" |
 | Backend | FastAPI (Python) | Pairs naturally with the ML pieces above |

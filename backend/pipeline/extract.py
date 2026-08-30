@@ -4,7 +4,7 @@ One LLM call per response: describe the mental model behind the answer,
 never judge correctness. Prompt is verbatim from section 5 of the brief.
 
 LLM transport: OpenRouter (OpenAI-compatible chat completions), with
-`z-ai/glm-5.2:free` as the preferred model and a controlled free fallback.
+`minimax/minimax-m3:free` as the preferred model and a controlled free fallback.
 """
 
 import hashlib
@@ -37,8 +37,8 @@ logic.
 Respond as JSON: {{"reasoning_summary": "..."}}"""
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-OPENROUTER_MODEL = "z-ai/glm-5.2:free"
-FALLBACK_OPENROUTER_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
+OPENROUTER_MODEL = "minimax/minimax-m3:free"
+FALLBACK_OPENROUTER_MODEL = "nvidia/nemotron-3.5-lightning:free"
 PRIMARY_MODEL_ATTEMPTS = 3
 FALLBACK_MODEL_ATTEMPTS = 3
 TIMEOUT_SECONDS = 60

@@ -30,7 +30,7 @@ embeddings = embed_reasoning(records)
 print('Stage 3...')
 clusters = run_stage3(records, embeddings)
 
-print('Stage 4 (labeling with GLM, then Nemotron fallback if needed)...')
+print('Stage 4 (labeling with MiniMax, then Nemotron fallback if needed)...')
 cards = run_stage4(question, correct_concept, records, clusters)
 print('Done!')
 for c in cards:
